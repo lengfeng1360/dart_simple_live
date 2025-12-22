@@ -12,9 +12,22 @@ import 'package:simple_live_core/src/model/tars/huya_user_id.dart';
 import 'package:tars_dart/tars/net/base_tars_http.dart';
 
 class HuyaSite implements LiveSite {
+  static const String baseUrl = "https://m.huya.com/";
   final String kUserAgent =
       "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.91 Mobile Safari/537.36 Edg/117.0.0.0";
-  final BaseTarsHttp tupClient = BaseTarsHttp("http://wup.huya.com", "liveui");
+
+  static const String HYSDK_UA =
+      "HYSDK(Windows, 30000002)_APP(pc_exe&7060000&official)_SDK(trans&2.32.3.5646)";
+
+  static Map<String, String> requestHeaders =  {
+      'Origin': baseUrl,
+      'Referer': baseUrl,
+      'User-Agent': HYSDK_UA,
+  };
+
+  final BaseTarsHttp tupClient =
+      BaseTarsHttp("http://wup.huya.com", "liveui", headers: requestHeaders);
+
   String? playUserAgent;
   @override
   String id = "huya";
@@ -231,12 +244,12 @@ class HuyaSite implements LiveSite {
   String buildAntiCode(String stream, int presenterUid, String antiCode) {
 
     var mapAnti = Uri(query: antiCode).queryParametersAll;
-    if (mapAnti.containsKey("fm")) {
+    if (!mapAnti.containsKey("fm")) {
       return antiCode;
     }
 
     var ctype = mapAnti["ctype"]?.first ?? "huya_pc_exe";
-    var platformId = int.tryParse(mapAnti["ctype"]?.first ?? "0");
+    var platformId = int.tryParse(mapAnti["t"]?.first ?? "0");
 
     bool isWap = platformId == 103;
     var clacStartTime = DateTime.now().millisecondsSinceEpoch;
@@ -298,7 +311,7 @@ class HuyaSite implements LiveSite {
   Future<String> getCndTokenInfoEx(String stream) async {
     var func = "getCdnTokenInfoEx";
     var tid = HuyaUserId();
-    tid.sHuYaUA = HYSDK_UA;
+    tid.sHuYaUA = "pc_exe&7060000&official";
     var tReq = GetCdnTokenExReq();
     tReq.tId = tid;
     tReq.sStreamName = stream;
