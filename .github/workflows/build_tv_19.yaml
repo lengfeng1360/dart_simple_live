@@ -1,0 +1,78 @@
+name: build_tv_19
+
+on:
+  # 1. 保留手动触发 (来自你的需求)
+  workflow_dispatch:
+  push:
+    tags:
+      - "tv19_v*"
+
+jobs:
+  build-tv:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      # 3. 签出代码
+      - uses: actions/checkout@v4
+        with:
+          ref: tv_android_sdk19_dev
+
+
+      # 4. APK签名设置 (使用上游的顺序，但用你的 Secrets)
+      - name: Download Android keystore
+        id: android_tv_keystore
+        uses: timheuer/base64-to-file@v1.2
+        with:
+            # 使用你的密钥文件名习惯
+            fileName: keystore_tv.jks
+            # 使用你的 Secret 变量名
+            encodedString: ${{ secrets.KEYSTORE_BASE64 }}
+
+      - name: Create key.properties
+        run: |
+            echo "storeFile=${{ steps.android_tv_keystore.outputs.filePath }}" > simple_live_tv_app/android/key.properties
+            # 替换为你的 Secret 变量名
+            echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> simple_live_tv_app/android/key.properties
+            echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> simple_live_tv_app/android/key.properties
+            echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> simple_live_tv_app/android/key.properties
+
+      # 5. 设置JAVA环境
+      - uses: actions/setup-java@v4
+        with:
+            distribution: "zulu"
+            java-version: "17"
+            cache: "gradle"
+
+      # 6. 设置Flutter (使用你的版本号)
+      - name: Flutter action
+        uses: subosito/flutter-action@v2
+        with:
+            # 改回你的 Flutter 版本 3.22.x，确保兼容性
+            flutter-version: "3.22.x"
+            cache: true
+
+      # 7. 更新Flutter的packages
+      - name: Restore packages
+        run: |
+            cd simple_live_tv_app
+            flutter pub get
+
+      # 8. 打包APK
+      - name: Build APK
+        run: |
+            cd simple_live_tv_app
+            flutter build apk --release --split-per-abi
+
+      # 9. 上传APK至Artifacts
+      - name: Upload APK to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+            name: android_tv
+            path: |
+                simple_live_tv_app/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+                simple_live_tv_app/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+                simple_live_tv_app/build/app/outputs/flutter-apk/app-x86_64-release.apk
+            
+      # 10. 完成
+      - run: echo "🍏 This job's status is ${{ job.status }}."
