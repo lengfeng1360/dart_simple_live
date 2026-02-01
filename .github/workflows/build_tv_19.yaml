@@ -49,7 +49,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
             # 改回你的 Flutter 版本 3.22.x，确保兼容性
-            flutter-version: "3.22.x"
+            flutter-version: "3.35.x"
             cache: true
 
       # 7. 更新Flutter的packages
